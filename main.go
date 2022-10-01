@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/hypebeast/go-osc/osc"
 	"github.com/youpy/go-coremidi"
 	"log"
+	"os"
+	"math"
+	"strings"
 )
 
 const debug = false
@@ -39,32 +43,39 @@ const (
 
 const sliderDelta = 1
 const knobDelta = -15
+const muteDelta = -47
 const soloDelta = -31
-const muteDelta = -38
 const recordDelta = -63
 
+var group = "s1"
+var groupNames = map[string]string{}
 var page = 1
 var client *osc.Client
 
 func handler(src coremidi.Source, pkg coremidi.Packet) {
 	element := InterfaceElement(pkg.Data[1])
 	value := int(pkg.Data[2])
+
+	viewChanged := false
 	if element == ButtonTrackPrevious && value == buttonPressed && page > 1 {
 		page -= 1
-		fmt.Printf("Page: %d\n", page)
+		viewChanged = true
 	} else if element == ButtonTrackNext && value == buttonPressed && page < 8 {
 		page += 1
-		fmt.Printf("Page: %d\n", page)
+		viewChanged = true
 	} else if element >= Slider1 && element <= Slider8 {
 		sendOsc("slider", element, value, sliderDelta)
 	} else if element >= Knob1 && element <= Knob8 {
 		sendOsc("knob", element, value, knobDelta)
-	} else if element >= ButtonSolo1 && element <= ButtonSolo8 {
-		sendOsc("solo", element, value, soloDelta)
-	} else if element >= ButtonMute1 && element <= ButtonMute8 {
-		sendOsc("mute", element, value, muteDelta)
-	} else if element >= ButtonReccord1 && element <= ButtonReccord8 {
-		sendOsc("record", element, value, recordDelta)
+	} else if element >= ButtonSolo1 && element <= ButtonSolo8 && value == buttonPressed {
+		group = fmt.Sprintf("s%d", element+soloDelta)
+		viewChanged = true
+	} else if element >= ButtonMute1 && element <= ButtonMute8 && value == buttonPressed {
+		group = fmt.Sprintf("m%d", element+muteDelta)
+		viewChanged = true
+	} else if element >= ButtonReccord1 && element <= ButtonReccord8 && value == buttonPressed {
+		group = fmt.Sprintf("r%d", element+recordDelta)
+		viewChanged = true
 	} else {
 		address := ""
 		switch element {
@@ -94,6 +105,13 @@ func handler(src coremidi.Source, pkg coremidi.Packet) {
 		}
 	}
 
+	if viewChanged {
+		groupDisplay := group
+		if value, ok := groupNames[group]; ok {
+			groupDisplay = fmt.Sprintf("%s (%s)", group, value)
+		}
+		fmt.Printf("Group: %s, Page: %d\n", groupDisplay, page)
+	}
 	if debug {
 		fmt.Printf(
 			"device: %v, manufacturer: %v, soure: %v, data: %v\n",
@@ -107,9 +125,9 @@ func handler(src coremidi.Source, pkg coremidi.Packet) {
 
 func sendOsc(outType string, element InterfaceElement, value int, delta int) {
 	channel := int(element) + delta + (page-1)*8
-	msgValue := float32(value) / 127.0 * 255.0
-	msg := osc.NewMessage(fmt.Sprintf("/%s/%d", outType, channel))
-	msg.Append(msgValue)
+	msgValue := float64(value) / 127.0 * 255.0
+	msg := osc.NewMessage(fmt.Sprintf("/%s/%s/%d", group, outType, channel))
+	msg.Append(int32(math.Round(msgValue)))
 	client.Send(msg)
 }
 
@@ -142,7 +160,24 @@ func connectToMidi() {
 	}
 }
 
+func loadNames() {
+	if len(os.Args) != 2 {
+		return
+	}
+	file, err := os.Open(os.Args[1:][0])
+	if err != nil {
+		log.Panic(err)
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		values := strings.Split(scanner.Text(), "=")
+		groupNames[strings.TrimSpace(values[0])] = strings.TrimSpace(values[1])
+	}
+}
+
 func main() {
+	loadNames()
 	connectToMidi()
 	client = osc.NewClient("127.0.0.1", 7700)
 	ch := make(chan int)
