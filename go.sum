@@ -1,0 +1,6 @@
+github.com/hypebeast/go-osc v0.0.0-20220308234300-cec5a8a1e5f5 h1:fqwINudmUrvGCuw+e3tedZ2UJ0hklSw6t8UPomctKyQ=
+github.com/hypebeast/go-osc v0.0.0-20220308234300-cec5a8a1e5f5/go.mod h1:lqMjoCs0y0GoRRujSPZRBaGb4c5ER6TfkFKSClxkMbY=
+github.com/youpy/go-coremidi v0.0.0-20210828055444-d16028a71dfe h1:YnIUnee8uwqdupK1JUluo59Obk1XDa3iXy45BHH5yhs=
+github.com/youpy/go-coremidi v0.0.0-20210828055444-d16028a71dfe/go.mod h1:JECUA7NazToXvXOjdf3ZXbqBk/LjRx+5GI3geQfi4L4=
+gitlab.com/gomidi/midi/v2 v2.0.25 h1:dkzVBqbaFHjyWwP71MrQNX7IeRUIDonddmHbPpO/Ucg=
+gitlab.com/gomidi/midi/v2 v2.0.25/go.mod h1:quTyMKSQ4Klevxu6gY4gy2USbeZra0fV5SalndmPfsY=
